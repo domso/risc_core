@@ -6,14 +6,12 @@ use ieee.math_real.all;
 use types.all;
 
 package instruction is
-    type t_instruction_type is (R_instr, I_instr, S_instr, B_instr, U_instr, J_instr);
-
     type t_register_rw is record(
         addr : std_logic_vector(4 downto 0);
         data : std_logic_vector(31 downto 0);
         en   : std_logic;
     );
-    
+        
     type t_micoop is record(
         operation : std_logic_vector(36 downto 0);
                 
@@ -24,9 +22,41 @@ package instruction is
         imm : std_logic_vector(31 downto 0);
         pc : std_logic_vector(31 downto 0);
         
+        memory_address : std_logic_vector(31 downto 0);
+        memory_byte_en : std_logic_vector(3 downto 0);     
+        memory_sign_extend : std_logic;
+        
+        branch_en : std_logic;
+        branch_pc : std_logic_vector(31 downto 0);
+                
         valid : std_logic;
     );
+
     
+    function decode_instruction(instruction_word : std_logic_vector(31 downto 0)) return t_micoop;
+    
+    function execute_instruction(operation : std_logic_vector; pc: std_logic_vector; imm : std_logic_vector(31 downto 0); register_read_data : std_logic_vector_vector(1 downto 0)(31 downto 0)) return t_instruction_execute_result;  
+end package;
+
+package body instruction is            
+    function select_register_forward(op : t_micoop; fwd : t_micoop) return t_micoop is
+        variable result : t_micoop := op;
+    begin
+        if fwd.valid = '1' and fwd.rd.en = '1' then        
+            if op.rs1.en = '1' and op.rs1.addr = fwd.rd.addr then
+                result.rs1.data := fwd.rd.data;
+            end if;
+            
+            if op.rs2.en = '1' and op.rs2.addr = fwd.rd.addr then
+                result.rs2.data := fwd.rd.data;
+            end if;
+        end if;
+    
+        return result;
+    end function;
+
+
+
     type t_instruction is record(
         opcode : std_logic_vector(6 downto 0);
         funct3 : std_logic_vector(2 downto 0);
@@ -42,27 +72,6 @@ package instruction is
         operation : std_logic_vector(36 downto 0);
     );
     
-    type t_instruction_execute_result is record (
-        memory_byte_en : std_logic_vector(3 downto 0);
-        memory_address : std_logic_vector(31 downto 0);
-        memory_wen     : std_logic;
-        memory_data    : std_logic_vector(31 downto 0);
-        
-        register_write_data : std_logic_vector(31 downto 0);
-        register_write_en   : std_logic;
-        
-        memory_sign_extend : std_logic;
-        
-        branch_en : std_logic;
-        branch_pc : std_logic_vector(31 downto 0);
-    );
-    
-    function decode_instruction(instruction_word : std_logic_vector(31 downto 0)) return t_instruction;
-    
-    function execute_instruction(operation : std_logic_vector; pc: std_logic_vector; imm : std_logic_vector(31 downto 0); register_read_data : std_logic_vector_vector(1 downto 0)(31 downto 0)) return t_instruction_execute_result;  
-end package;
-
-package body instruction is
     function decode_instruction_by_type(instruction_word : std_logic_vector(31 downto 0); instruction_type : t_instruction_type) return t_instruction is
         variable result : t_instruction;
     begin
@@ -104,8 +113,8 @@ package body instruction is
     end function;
     
     
-    function decode_instruction(instruction_word : std_logic_vector(31 downto 0)) return t_instruction is
-        variable result : t_instruction;
+    function decode_instruction(instruction_word : std_logic_vector(31 downto 0)) return t_micoop is
+        variable result : t_micoop;
     begin
         result.illegal := '0';
         result.operation := (others => '0');
@@ -437,3 +446,4 @@ package body instruction is
         
     end function;
 end package;
+

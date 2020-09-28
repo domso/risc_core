@@ -19,7 +19,8 @@ entity decode is
         instruction_en : out std_logic;
         instruction_op : out std_logic_vector(36 downto 0);
         instruction_data : out std_logic_vector_vector(2 downto 0)(31 downto 0);        
-        instruction_dest : out std_logic_vector(4 downto 0);
+        instruction_write_addr : out std_logic_vector(4 downto 0);          
+        instruction_read_addr     : out std_logic_vector_vector(1 downto 0)(31 downto 0);     
         
         register_write_addr : in std_logic_vector(4 downto 0);
         register_write_data : in std_logic_vector(31 downto 0);
@@ -45,7 +46,7 @@ begin
                 
                 instruction_op <= (others => '0');
                 instruction_data(0) <= (others => '0');
-                instruction_dest <= (others => '0');
+                instruction_write_addr <= (others => '0');
             else           
                 if fwd_decoded_instruction.illegal = '0' then
                     instruction_en <= instruction_word_en;
@@ -53,14 +54,14 @@ begin
                     
                     instruction_op <= fwd_decoded_instruction.operation;
                     instruction_data(0) <= fwd_decoded_instruction.imm;
-                    instruction_dest <= fwd_decoded_instruction.rd;
+                    instruction_write_addr <= fwd_decoded_instruction.rd;
                 else                
                     instruction_en <= '0';
                     pc_out <= (others => '0');
                     
                     instruction_op <= (others => '0');
                     instruction_data(0) <= (others => '0');
-                    instruction_dest <= (others => '0');
+                    instruction_write_addr <= (others => '0');
                 end if;
             end if;
         end if;
